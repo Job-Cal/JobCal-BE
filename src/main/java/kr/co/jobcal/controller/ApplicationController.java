@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
-@RequestMapping("/applications")
+@RequestMapping("/api/applications")
 public class ApplicationController {
 
     private final ApplicationService applicationService;
