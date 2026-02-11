@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/api/",
                         "/api/health",
+                        "/api/logout",
                         "/error",
                         "/actuator/health").permitAll()
                 .requestMatchers(
