@@ -5,7 +5,7 @@ import kr.co.jobcal.entity.ApplicationStatus;
 
 public class ApplicationResponse {
     private Long id;
-    private Long userId;
+    private String userId;
     private Long jobPostingId;
     private ApplicationStatus status;
     private String memo;
@@ -21,11 +21,11 @@ public class ApplicationResponse {
         this.id = id;
     }
 
-    public Long getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(Long userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 

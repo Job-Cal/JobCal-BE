@@ -20,7 +20,7 @@ public class DataInitializer implements ApplicationRunner {
         if (userRepository.count() == 0) {
             User user = new User();
             user.setEmail("dev@jobcal.local");
-            user.setUsername("dev");
+            user.setUserId("dev");
             user.setHashedPassword("dev");
             user.setIsActive(true);
             userRepository.save(user);

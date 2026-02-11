@@ -4,8 +4,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
@@ -20,22 +18,18 @@ import java.util.List;
 @Table(
     name = "users",
     indexes = {
-        @Index(name = "ix_users_id", columnList = "id"),
         @Index(name = "ix_users_email", columnList = "email", unique = true),
-        @Index(name = "ix_users_username", columnList = "username", unique = true)
+        @Index(name = "ix_users_user_id", columnList = "user_id", unique = true)
     }
 )
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "user_id", nullable = false, unique = true)
+    private String userId;
 
     @Column(nullable = false, unique = true)
     private String email;
-
-    @Column(nullable = false, unique = true)
-    private String username;
 
     @Column(name = "hashed_password", nullable = false)
     private String hashedPassword;
@@ -62,14 +56,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getEmail() {
         return email;
     }
@@ -78,12 +64,12 @@ public class User {
         this.email = email;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getHashedPassword() {

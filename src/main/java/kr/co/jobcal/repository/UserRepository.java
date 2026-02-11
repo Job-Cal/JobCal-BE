@@ -4,6 +4,7 @@ import java.util.Optional;
 import kr.co.jobcal.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmail(String email);
+    boolean existsByUserId(String userId);
 }

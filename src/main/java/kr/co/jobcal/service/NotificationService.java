@@ -42,9 +42,9 @@ public class NotificationService {
         }
     }
 
-    public List<Application> getApplicationsNeedingNotification(Long userId) {
+    public List<Application> getApplicationsNeedingNotification(String userId) {
         LocalDate today = LocalDate.now();
         LocalDate threeDaysLater = today.plusDays(3);
-        return applicationRepository.findByUserIdAndDeadlineBetween(userId, today, threeDaysLater);
+        return applicationRepository.findByUserUserIdAndDeadlineBetween(userId, today, threeDaysLater);
     }
 }

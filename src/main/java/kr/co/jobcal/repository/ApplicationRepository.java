@@ -13,15 +13,15 @@ import org.springframework.data.repository.query.Param;
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
     @EntityGraph(attributePaths = {"jobPosting"})
-    List<Application> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Application> findByUserUserIdOrderByCreatedAtDesc(String userId);
 
     @EntityGraph(attributePaths = {"jobPosting"})
-    Optional<Application> findByIdAndUserId(Long id, Long userId);
+    Optional<Application> findByIdAndUserUserId(Long id, String userId);
 
     @EntityGraph(attributePaths = {"jobPosting"})
-    @Query("select a from Application a join a.jobPosting jp where a.user.id = :userId and jp.deadline between :start and :end")
-    List<Application> findByUserIdAndDeadlineBetween(
-        @Param("userId") Long userId,
+    @Query("select a from Application a join a.jobPosting jp where a.user.userId = :userId and jp.deadline between :start and :end")
+    List<Application> findByUserUserIdAndDeadlineBetween(
+        @Param("userId") String userId,
         @Param("start") LocalDate start,
         @Param("end") LocalDate end
     );

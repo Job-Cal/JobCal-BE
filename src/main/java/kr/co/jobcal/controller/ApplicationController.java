@@ -71,7 +71,7 @@ public class ApplicationController {
     private ApplicationResponse toApplicationResponse(Application application) {
         ApplicationResponse response = new ApplicationResponse();
         response.setId(application.getId());
-        response.setUserId(application.getUser().getId());
+        response.setUserId(application.getUser().getUserId());
         response.setJobPostingId(application.getJobPosting().getId());
         response.setStatus(application.getStatus());
         response.setMemo(application.getMemo());

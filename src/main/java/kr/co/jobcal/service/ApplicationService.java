@@ -32,7 +32,7 @@ public class ApplicationService {
     }
 
     @Transactional
-    public Application createApplication(Long userId, ApplicationCreateRequest request) {
+    public Application createApplication(String userId, ApplicationCreateRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
         JobPosting jobPosting = jobPostingRepository.findById(request.getJobPostingId())
@@ -46,17 +46,17 @@ public class ApplicationService {
         return applicationRepository.save(application);
     }
 
-    public List<Application> getUserApplications(Long userId) {
-        return applicationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    public List<Application> getUserApplications(String userId) {
+        return applicationRepository.findByUserUserIdOrderByCreatedAtDesc(userId);
     }
 
-    public Optional<Application> getApplication(Long applicationId, Long userId) {
-        return applicationRepository.findByIdAndUserId(applicationId, userId);
+    public Optional<Application> getApplication(Long applicationId, String userId) {
+        return applicationRepository.findByIdAndUserUserId(applicationId, userId);
     }
 
     @Transactional
-    public Optional<Application> updateApplication(Long applicationId, Long userId, ApplicationUpdateRequest request) {
-        Optional<Application> optional = applicationRepository.findByIdAndUserId(applicationId, userId);
+    public Optional<Application> updateApplication(Long applicationId, String userId, ApplicationUpdateRequest request) {
+        Optional<Application> optional = applicationRepository.findByIdAndUserUserId(applicationId, userId);
         if (optional.isEmpty()) {
             return Optional.empty();
         }
@@ -71,13 +71,13 @@ public class ApplicationService {
         return Optional.of(applicationRepository.save(application));
     }
 
-    public List<Application> getApplicationsByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
-        return applicationRepository.findByUserIdAndDeadlineBetween(userId, startDate, endDate);
+    public List<Application> getApplicationsByDateRange(String userId, LocalDate startDate, LocalDate endDate) {
+        return applicationRepository.findByUserUserIdAndDeadlineBetween(userId, startDate, endDate);
     }
 
     @Transactional
-    public boolean deleteApplication(Long applicationId, Long userId) {
-        Optional<Application> optional = applicationRepository.findByIdAndUserId(applicationId, userId);
+    public boolean deleteApplication(Long applicationId, String userId) {
+        Optional<Application> optional = applicationRepository.findByIdAndUserUserId(applicationId, userId);
         if (optional.isEmpty()) {
             return false;
         }
