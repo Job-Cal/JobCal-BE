@@ -24,9 +24,6 @@ public class UserService {
 
         return userRepository.findByEmail(email)
             .map(existing -> {
-                if (userId != null && !Objects.equals(existing.getUserId(), userId)) {
-                    existing.setUserId(ensureUniqueUserId(userId));
-                }
                 return existing;
             })
             .orElseGet(() -> {

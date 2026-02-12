@@ -1,4 +1,4 @@
-package kr.co.jobcal.security;
+package kr.co.jobcal.global.oauth;
 
 import java.util.Map;
 import kr.co.jobcal.service.UserService;

@@ -6,7 +6,7 @@ import kr.co.jobcal.service.parser.GenericParser;
 import kr.co.jobcal.service.parser.JobKoreaParser;
 import kr.co.jobcal.service.parser.ParsedJob;
 import kr.co.jobcal.service.parser.WantedParser;
-import kr.co.jobcal.util.HttpFetcher;
+import kr.co.jobcal.global.utils.HttpFetcher;
 import org.springframework.stereotype.Service;
 
 @Service

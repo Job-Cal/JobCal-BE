@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import kr.co.jobcal.util.JsonMapConverter;
+import kr.co.jobcal.global.utils.JsonMapConverter;
 
 @Entity
 @Table(

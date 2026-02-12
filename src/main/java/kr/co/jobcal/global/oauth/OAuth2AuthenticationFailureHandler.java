@@ -1,4 +1,4 @@
-package kr.co.jobcal.security;
+package kr.co.jobcal.global.oauth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

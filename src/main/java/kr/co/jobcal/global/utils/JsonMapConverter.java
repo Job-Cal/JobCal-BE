@@ -1,4 +1,4 @@
-package kr.co.jobcal.util;
+package kr.co.jobcal.global.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

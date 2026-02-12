@@ -2,7 +2,7 @@ package kr.co.jobcal.service;
 
 import java.util.Map;
 import kr.co.jobcal.entity.User;
-import kr.co.jobcal.security.AuthClaimsExtractor;
+import kr.co.jobcal.global.oauth.AuthClaimsExtractor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
