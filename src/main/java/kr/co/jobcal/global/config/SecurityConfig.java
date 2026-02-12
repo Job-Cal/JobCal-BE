@@ -17,9 +17,12 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Configuration
 public class SecurityConfig {
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -31,6 +34,8 @@ public class SecurityConfig {
         CookieOAuth2AuthorizationRequestRepository authorizationRequestRepository,
         ClientRegistrationRepository clientRegistrationRepository
     ) throws Exception {
+        String issuerUri = environment.getProperty("spring.security.oauth2.client.provider.cognito.issuer-uri");
+        log.info("Resolved cognito issuer-uri = {}", issuerUri != null ? issuerUri : "NOT_SET");
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> {})
