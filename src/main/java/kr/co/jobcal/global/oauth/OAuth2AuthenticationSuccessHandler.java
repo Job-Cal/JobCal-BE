@@ -89,7 +89,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
     private void setHttpOnlyCookie(jakarta.servlet.http.HttpServletResponse response, String name, String value) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
             .httpOnly(true)
-            .secure(false)
+            .secure(true)
             .sameSite("None")
             .path("/")
             .build();
