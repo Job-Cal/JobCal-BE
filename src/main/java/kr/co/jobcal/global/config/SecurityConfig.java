@@ -1,6 +1,5 @@
 package kr.co.jobcal.global.config;
 
-import kr.co.jobcal.global.oauth.CookieBearerTokenResolver;
 import kr.co.jobcal.global.oauth.CookieOAuth2AuthorizationRequestRepository;
 import kr.co.jobcal.global.oauth.CustomAuthorizationRequestResolver;
 import kr.co.jobcal.global.oauth.CustomOidcUserService;
@@ -15,7 +14,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +42,7 @@ public class SecurityConfig {
                 .requestMatchers(
                         "/api/",
                         "/api/health",
+                        "/api/auth/refresh",
                         "/api/logout",
                         "/error",
                         "/actuator/health").permitAll()
@@ -83,7 +82,6 @@ public class SecurityConfig {
 
         if (hasText(environment.getProperty("spring.security.oauth2.resourceserver.jwt.issuer-uri"))) {
             http.oauth2ResourceServer(oauth2 -> oauth2
-                .bearerTokenResolver(bearerTokenResolver())
                 .jwt(jwt -> {})
             );
         }
@@ -93,10 +91,5 @@ public class SecurityConfig {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
-    }
-
-    @Bean
-    public BearerTokenResolver bearerTokenResolver() {
-        return new CookieBearerTokenResolver("accessToken");
     }
 }

@@ -1,7 +1,6 @@
 package kr.co.jobcal.global.oauth;
 
 import java.io.IOException;
-import java.util.Map;
 import kr.co.jobcal.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +13,6 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
@@ -45,8 +43,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
     ) throws IOException {
         userService.upsertFromClaims(AuthClaimsExtractor.extractClaims(authentication));
 
-        OAuth2AuthorizationRequest authRequest = authorizationRequestRepository.removeAuthorizationRequest(request, response);
-        boolean isLocal = isLocalMode(authRequest);
+        authorizationRequestRepository.removeAuthorizationRequest(request, response);
 
         if (authentication instanceof OAuth2AuthenticationToken oauthToken) {
             OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
@@ -54,19 +51,6 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
                 oauthToken.getName()
             );
             if (client != null && client.getAccessToken() != null) {
-                if (isLocal) {
-                    UriComponentsBuilder builder = UriComponentsBuilder.fromUriString("http://localhost:3000")
-                        .path("/oauth/callback")
-                        .queryParam("accessToken", client.getAccessToken().getTokenValue());
-                    if (client.getRefreshToken() != null) {
-                        builder.queryParam("refreshToken", client.getRefreshToken().getTokenValue());
-                    }
-                    String redirectUrl = builder.build(true).toUriString();
-                    log.info("OAuth2 local login redirect -> {}", redirectUrl);
-                    response.sendRedirect(redirectUrl);
-                    return;
-                }
-                setHttpOnlyCookie(response, "accessToken", client.getAccessToken().getTokenValue());
                 if (client.getRefreshToken() != null) {
                     setHttpOnlyCookie(response, "refreshToken", client.getRefreshToken().getTokenValue());
                 }
@@ -75,15 +59,6 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
         log.info("OAuth2 login redirect -> {}", frontendUrl);
         response.sendRedirect(frontendUrl);
-    }
-
-    private boolean isLocalMode(OAuth2AuthorizationRequest authRequest) {
-        if (authRequest == null) {
-            return false;
-        }
-        Map<String, Object> params = authRequest.getAdditionalParameters();
-        Object mode = params.get("mode");
-        return "local".equalsIgnoreCase(String.valueOf(mode));
     }
 
     private void setHttpOnlyCookie(jakarta.servlet.http.HttpServletResponse response, String name, String value) {
