@@ -68,6 +68,9 @@ public class ApplicationService {
         if (request.getMemo() != null) {
             application.setMemo(request.getMemo());
         }
+        if (request.getDeadline() != null) {
+            application.getJobPosting().setDeadline(request.getDeadline());
+        }
         return Optional.of(applicationRepository.save(application));
     }
 
