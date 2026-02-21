@@ -54,6 +54,9 @@ public class JobPosting {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "description_raw", columnDefinition = "TEXT")
+    private String descriptionRaw;
+
     @Column(name = "location", columnDefinition = "TEXT")
     private String location;
 
@@ -138,6 +141,14 @@ public class JobPosting {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getDescriptionRaw() {
+        return descriptionRaw;
+    }
+
+    public void setDescriptionRaw(String descriptionRaw) {
+        this.descriptionRaw = descriptionRaw;
     }
 
     public LocalDateTime getCreatedAt() {

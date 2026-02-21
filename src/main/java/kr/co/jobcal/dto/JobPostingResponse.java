@@ -12,6 +12,7 @@ public class JobPostingResponse {
     private String originalUrl;
     private Map<String, Object> parsedData;
     private String description;
+    private String descriptionRaw;
     private String location;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -78,6 +79,14 @@ public class JobPostingResponse {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getDescriptionRaw() {
+        return descriptionRaw;
+    }
+
+    public void setDescriptionRaw(String descriptionRaw) {
+        this.descriptionRaw = descriptionRaw;
     }
 
     public LocalDateTime getCreatedAt() {

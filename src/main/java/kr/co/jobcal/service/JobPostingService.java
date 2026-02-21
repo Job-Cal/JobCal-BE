@@ -28,6 +28,9 @@ public class JobPostingService {
                 if (request.getDescription() != null) {
                     jobPosting.setDescription(request.getDescription());
                 }
+                if (request.getDescriptionRaw() != null) {
+                    jobPosting.setDescriptionRaw(request.getDescriptionRaw());
+                }
                 if (request.getLocation() != null) {
                     jobPosting.setLocation(request.getLocation());
                 }
@@ -45,6 +48,7 @@ public class JobPostingService {
         jobPosting.setOriginalUrl(request.getOriginalUrl());
         jobPosting.setParsedData(request.getParsedData());
         jobPosting.setDescription(request.getDescription());
+        jobPosting.setDescriptionRaw(request.getDescriptionRaw());
         jobPosting.setLocation(request.getLocation());
         return jobPostingRepository.save(jobPosting);
     }

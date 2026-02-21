@@ -39,7 +39,9 @@ public class ParserService {
             request.setDeadline(parsedJob.getDeadline());
             request.setOriginalUrl(url);
             request.setParsedData(parsedJob.getParsedData());
-            request.setDescription(parsedJob.getDescription());
+            String rawDescription = parsedJob.getDescription();
+            request.setDescriptionRaw(rawDescription);
+            request.setDescription(rawDescription);
             request.setLocation(parsedJob.getLocation());
 
             String host = extractNormalizedHost(url);

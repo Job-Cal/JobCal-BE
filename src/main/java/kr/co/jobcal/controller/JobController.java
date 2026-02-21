@@ -102,6 +102,7 @@ public class JobController {
         response.setOriginalUrl(jobPosting.getOriginalUrl());
         response.setParsedData(jobPosting.getParsedData());
         response.setDescription(jobPosting.getDescription());
+        response.setDescriptionRaw(jobPosting.getDescriptionRaw());
         response.setLocation(jobPosting.getLocation());
         response.setCreatedAt(jobPosting.getCreatedAt());
         response.setUpdatedAt(jobPosting.getUpdatedAt());

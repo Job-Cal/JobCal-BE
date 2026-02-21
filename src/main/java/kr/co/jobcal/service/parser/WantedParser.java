@@ -12,6 +12,7 @@ import org.jsoup.nodes.Element;
 
 public class WantedParser extends BaseParser {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final int DESCRIPTION_MAX_LENGTH = 10000;
 
     public WantedParser(String html) {
         super(html);
@@ -36,25 +37,12 @@ public class WantedParser extends BaseParser {
             String confirmTime = textAt(initialData, "confirm_time");
 
             if (description == null || description.length() < 50) {
-                StringBuilder merged = new StringBuilder();
-                if (responsibilities != null) {
-                    merged.append("주요업무: ").append(responsibilities);
-                }
-                if (requirements != null) {
-                    if (merged.length() > 0) {
-                        merged.append(" | ");
-                    }
-                    merged.append("자격요건: ").append(requirements);
-                }
-                if (preferences != null) {
-                    if (merged.length() > 0) {
-                        merged.append(" | ");
-                    }
-                    merged.append("우대사항: ").append(preferences);
-                }
-                if (merged.length() > 0) {
-                    description = merged.toString();
-                }
+                Map<String, String> fallbackSections = new HashMap<>();
+                fallbackSections.put("주요업무", responsibilities);
+                fallbackSections.put("자격요건", requirements);
+                fallbackSections.put("우대사항", preferences);
+                fallbackSections.put("채용 전형", hireRounds);
+                description = joinLabeledRawSections(fallbackSections);
             }
 
             result.setCompanyName(companyName != null ? companyName : "Unknown Company");
@@ -184,7 +172,7 @@ public class WantedParser extends BaseParser {
     private String extractDescription(JsonNode initialData) {
         String fromInitialData = mergeDescriptionFromInitialData(initialData);
         if (fromInitialData != null) {
-            return trimToMax(fromInitialData, 1000);
+            return trimToMax(fromInitialData, DESCRIPTION_MAX_LENGTH);
         }
 
         List<String> selectors = List.of(
@@ -198,7 +186,7 @@ public class WantedParser extends BaseParser {
             if (element != null) {
                 String text = cleanText(element.text());
                 if (text.length() > 50) {
-                    return text.length() > 1000 ? text.substring(0, 1000) : text;
+                    return trimToMax(text, DESCRIPTION_MAX_LENGTH);
                 }
             }
         }
@@ -359,20 +347,40 @@ public class WantedParser extends BaseParser {
     }
 
     private String mergeDescriptionFromInitialData(JsonNode initialData) {
-        List<String> keys = List.of("main_tasks", "requirements", "preferred_points", "benefits", "intro");
+        Map<String, String> sections = new HashMap<>();
+        sections.put("소개", textAt(initialData, "intro"));
+        sections.put("주요업무", textAt(initialData, "main_tasks"));
+        sections.put("자격요건", textAt(initialData, "requirements"));
+        sections.put("우대사항", textAt(initialData, "preferred_points"));
+        sections.put("혜택 및 복지", textAt(initialData, "benefits"));
+        sections.put("채용 전형", textAt(initialData, "hire_rounds"));
+        return joinLabeledRawSections(sections);
+    }
+
+    private String joinLabeledRawSections(Map<String, String> sectionsByLabel) {
+        if (sectionsByLabel == null || sectionsByLabel.isEmpty()) {
+            return null;
+        }
+
+        List<String> order = List.of("소개", "주요업무", "자격요건", "우대사항", "혜택 및 복지", "채용 전형");
         StringBuilder builder = new StringBuilder();
-        for (String key : keys) {
-            String value = textAt(initialData, key);
-            if (value == null) {
+        for (String label : order) {
+            String section = sectionsByLabel.get(label);
+            if (section == null || section.isBlank()) {
                 continue;
             }
             if (builder.length() > 0) {
-                builder.append(" ");
+                builder.append("\n\n");
             }
-            builder.append(value);
+            String cleaned = section.trim();
+            if (cleaned.contains(label)) {
+                builder.append(cleaned);
+            } else {
+                builder.append("## ").append(label).append("\n").append(cleaned);
+            }
         }
-        String merged = cleanText(builder.toString());
-        return merged.isBlank() ? null : merged;
+        String merged = builder.toString().trim();
+        return merged.isBlank() ? null : trimToMax(merged, DESCRIPTION_MAX_LENGTH);
     }
 
     private JsonNode extractWantedInitialDataNode() {

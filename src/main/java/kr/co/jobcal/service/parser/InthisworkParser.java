@@ -8,6 +8,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 public class InthisworkParser extends BaseParser {
+    private static final int DESCRIPTION_MAX_LENGTH = 10000;
 
     public InthisworkParser(String html) {
         super(html);
@@ -126,7 +127,7 @@ public class InthisworkParser extends BaseParser {
             }
         }
         if (best != null) {
-            return trimToMax(best, 1000);
+            return trimToMax(best, DESCRIPTION_MAX_LENGTH);
         }
 
         List<String> fallbackSelectors = List.of("meta[property=og:description]", "meta[name=description]");
@@ -135,7 +136,7 @@ public class InthisworkParser extends BaseParser {
             if (meta != null && meta.hasAttr("content")) {
                 String text = cleanText(meta.attr("content"));
                 if (text.length() > 30) {
-                    return trimToMax(text, 1000);
+                    return trimToMax(text, DESCRIPTION_MAX_LENGTH);
                 }
             }
         }

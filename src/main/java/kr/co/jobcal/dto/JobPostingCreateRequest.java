@@ -10,6 +10,7 @@ public class JobPostingCreateRequest {
     private String originalUrl;
     private Map<String, Object> parsedData;
     private String description;
+    private String descriptionRaw;
     private String location;
 
     public String getCompanyName() {
@@ -66,5 +67,13 @@ public class JobPostingCreateRequest {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getDescriptionRaw() {
+        return descriptionRaw;
+    }
+
+    public void setDescriptionRaw(String descriptionRaw) {
+        this.descriptionRaw = descriptionRaw;
     }
 }
