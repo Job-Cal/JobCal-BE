@@ -2,18 +2,29 @@ package kr.co.jobcal.service;
 
 import kr.co.jobcal.dto.JobPostingCreateRequest;
 import kr.co.jobcal.service.parser.BaseParser;
-import kr.co.jobcal.service.parser.GenericParser;
-import kr.co.jobcal.service.parser.JobKoreaParser;
+import kr.co.jobcal.service.parser.InthisworkParser;
 import kr.co.jobcal.service.parser.ParsedJob;
 import kr.co.jobcal.service.parser.WantedParser;
 import kr.co.jobcal.global.utils.HttpFetcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.net.URI;
+import java.util.Locale;
 
 @Service
 public class ParserService {
+    private static final Logger log = LoggerFactory.getLogger(ParserService.class);
+
+    private static final String UNSUPPORTED_URL_ERROR = "지원하지 않는 주소입니다. 원티드/인디스워크 URL만 지원합니다.";
 
     public ParserResult parseUrl(String url) {
         try {
+            if (!isWantedUrl(url)) {
+                return ParserResult.failure(UNSUPPORTED_URL_ERROR);
+            }
+
             String html = HttpFetcher.fetchUrl(url);
             if (html == null || html.isBlank()) {
                 return ParserResult.failure("Failed to fetch URL");
@@ -31,6 +42,19 @@ public class ParserService {
             request.setDescription(parsedJob.getDescription());
             request.setLocation(parsedJob.getLocation());
 
+            String host = extractNormalizedHost(url);
+            if (isInthisworkHost(host)) {
+                log.info(
+                    "[Inthiswork Parse] url={}, companyName={}, jobTitle={}, deadline={}, location={}, parsedData={}",
+                    url,
+                    request.getCompanyName(),
+                    request.getJobTitle(),
+                    request.getDeadline(),
+                    request.getLocation(),
+                    request.getParsedData()
+                );
+            }
+
             return ParserResult.success(request);
         } catch (Exception e) {
             return ParserResult.failure("Parsing error: " + e.getMessage());
@@ -38,14 +62,44 @@ public class ParserService {
     }
 
     private BaseParser getParser(String url, String html) {
-        String lower = url.toLowerCase();
-        if (lower.contains("wanted.co.kr") || lower.contains("wanted")) {
-            return new WantedParser(html);
+        String host = extractNormalizedHost(url);
+        if (isInthisworkHost(host)) {
+            return new InthisworkParser(html);
         }
-        if (lower.contains("jobkorea.co.kr") || lower.contains("jobkorea")) {
-            return new JobKoreaParser(html);
+
+        return new WantedParser(html);
+    }
+
+    private boolean isWantedUrl(String url) {
+        String host = extractNormalizedHost(url);
+        if (host == null) {
+            return false;
         }
-        return new GenericParser(html);
+
+        return host.equals("wanted.co.kr")
+            || host.endsWith(".wanted.co.kr")
+            || isInthisworkHost(host);
+    }
+
+    private boolean isInthisworkHost(String host) {
+        if (host == null || host.isBlank()) {
+            return false;
+        }
+        return host.equals("inthiswork.com") || host.endsWith(".inthiswork.com");
+    }
+
+    private String extractNormalizedHost(String url) {
+        try {
+            URI uri = URI.create(url);
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                return null;
+            }
+
+            return host.toLowerCase(Locale.ROOT);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public static class ParserResult {
