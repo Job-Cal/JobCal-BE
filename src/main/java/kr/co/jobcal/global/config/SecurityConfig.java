@@ -5,6 +5,8 @@ import kr.co.jobcal.global.oauth.CustomAuthorizationRequestResolver;
 import kr.co.jobcal.global.oauth.CustomOidcUserService;
 import kr.co.jobcal.global.oauth.OAuth2AuthenticationFailureHandler;
 import kr.co.jobcal.global.oauth.OAuth2AuthenticationSuccessHandler;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -59,6 +61,9 @@ public class SecurityConfig {
             .logout(logout -> logout
                 .logoutUrl("/api/logout")
                 .logoutSuccessHandler((request, response, authentication) -> {
+                    expireCookie(response, "refreshToken", "None", true);
+                    expireCookie(response, "oauth2_auth_request", "Lax", request.isSecure());
+                    expireCookie(response, "JSESSIONID", "Lax", request.isSecure());
                     response.setStatus(HttpStatus.OK.value());
                 })
             );
@@ -91,5 +96,21 @@ public class SecurityConfig {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private void expireCookie(
+        jakarta.servlet.http.HttpServletResponse response,
+        String name,
+        String sameSite,
+        boolean secure
+    ) {
+        ResponseCookie cookie = ResponseCookie.from(name, "")
+            .httpOnly(true)
+            .secure(secure)
+            .sameSite(sameSite)
+            .path("/")
+            .maxAge(0)
+            .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
