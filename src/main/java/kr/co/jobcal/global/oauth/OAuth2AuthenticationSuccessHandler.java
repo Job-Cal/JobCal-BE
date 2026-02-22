@@ -57,8 +57,11 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             }
         }
 
-        log.info("OAuth2 login redirect -> {}", frontendUrl);
-        response.sendRedirect(frontendUrl);
+        String redirectUrl = frontendUrl.contains("?")
+            ? frontendUrl + "&justLoggedIn=1"
+            : frontendUrl + "?justLoggedIn=1";
+        log.info("OAuth2 login redirect -> {}", redirectUrl);
+        response.sendRedirect(redirectUrl);
     }
 
     private void setHttpOnlyCookie(jakarta.servlet.http.HttpServletResponse response, String name, String value) {
