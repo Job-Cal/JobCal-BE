@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
@@ -57,11 +58,29 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             }
         }
 
-        String redirectUrl = frontendUrl.contains("?")
-            ? frontendUrl + "&justLoggedIn=1"
-            : frontendUrl + "?justLoggedIn=1";
+        String redirectUrl = buildLoginRedirectUrl(frontendUrl);
         log.info("OAuth2 login redirect -> {}", redirectUrl);
         response.sendRedirect(redirectUrl);
+    }
+
+    private String buildLoginRedirectUrl(String baseFrontendUrl) {
+        String path = UriComponentsBuilder.fromUriString(baseFrontendUrl).build().getPath();
+        String loginPath;
+        if (path == null || path.isBlank() || "/".equals(path)) {
+            loginPath = "/login";
+        } else if (path.endsWith("/login")) {
+            loginPath = path;
+        } else if (path.endsWith("/")) {
+            loginPath = path + "login";
+        } else {
+            loginPath = path + "/login";
+        }
+
+        return UriComponentsBuilder.fromUriString(baseFrontendUrl)
+            .replacePath(loginPath)
+            .replaceQueryParam("justLoggedIn", "1")
+            .build(true)
+            .toUriString();
     }
 
     private void setHttpOnlyCookie(jakarta.servlet.http.HttpServletResponse response, String name, String value) {
