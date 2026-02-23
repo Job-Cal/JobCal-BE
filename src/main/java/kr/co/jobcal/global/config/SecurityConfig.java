@@ -52,6 +52,7 @@ public class SecurityConfig {
                         "/api/oauth2/**",
                         "/api/login/**",
                         "/api/login/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/jobs/parse").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
