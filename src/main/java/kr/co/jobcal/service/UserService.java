@@ -19,16 +19,36 @@ public class UserService {
 
     @Transactional
     public User upsertFromClaims(Map<String, Object> claims) {
-        String email = extractEmail(claims);
-        String userId = extractUserId(claims, email);
+        String providerSubject = extractProviderSubject(claims);
+        String email = extractEmail(claims, providerSubject);
+        String userId = extractUserId(claims, email, providerSubject);
 
+        if (providerSubject != null) {
+            return userRepository.findByProviderSubject(providerSubject)
+                .map(existing -> {
+                    boolean updated = tryUpdateEmail(existing, email);
+                    return updated ? userRepository.save(existing) : existing;
+                })
+                .orElseGet(() -> upsertByEmailOrCreate(email, userId, providerSubject));
+        }
+
+        return upsertByEmailOrCreate(email, userId, null);
+    }
+
+    private User upsertByEmailOrCreate(String email, String userId, String providerSubject) {
         return userRepository.findByEmail(email)
             .map(existing -> {
-                return existing;
+                boolean updated = false;
+                if (providerSubject != null && (existing.getProviderSubject() == null || existing.getProviderSubject().isBlank())) {
+                    existing.setProviderSubject(providerSubject);
+                    updated = true;
+                }
+                return updated ? userRepository.save(existing) : existing;
             })
             .orElseGet(() -> {
                 User user = new User();
                 user.setEmail(email);
+                user.setProviderSubject(providerSubject);
                 user.setUserId(ensureUniqueUserId(userId));
                 user.setHashedPassword("oauth2:" + UUID.randomUUID());
                 user.setIsActive(true);
@@ -36,7 +56,15 @@ public class UserService {
             });
     }
 
-    private String extractEmail(Map<String, Object> claims) {
+    private String extractProviderSubject(Map<String, Object> claims) {
+        String sub = claimAsString(claims, "sub");
+        if (sub == null || sub.isBlank()) {
+            return null;
+        }
+        return sub;
+    }
+
+    private String extractEmail(Map<String, Object> claims, String providerSubject) {
         String email = claimAsString(claims, "email");
         if (email != null && !email.isBlank()) {
             return email;
@@ -52,15 +80,17 @@ public class UserService {
             return cognitoUsername;
         }
 
-        String sub = claimAsString(claims, "sub");
-        if (sub != null) {
-            return sub + "@cognito.local";
+        if (providerSubject != null) {
+            return providerSubject + "@cognito.local";
         }
 
         throw new IllegalArgumentException("Missing email claim from authentication token");
     }
 
-    private String extractUserId(Map<String, Object> claims, String fallbackEmail) {
+    private String extractUserId(Map<String, Object> claims, String fallbackEmail, String providerSubject) {
+        if (providerSubject != null && !providerSubject.isBlank()) {
+            return sanitizeUserId(providerSubject);
+        }
         String userId = claimAsString(claims, "preferred_username");
         if (userId == null) {
             userId = claimAsString(claims, "username");
@@ -93,6 +123,41 @@ public class UserService {
             return "user";
         }
         return normalized;
+    }
+
+    private boolean shouldReplaceEmail(String currentEmail, String incomingEmail) {
+        if (incomingEmail == null || incomingEmail.isBlank()) {
+            return false;
+        }
+        if (Objects.equals(currentEmail, incomingEmail)) {
+            return false;
+        }
+        if (currentEmail == null || currentEmail.isBlank()) {
+            return true;
+        }
+        return isSyntheticCognitoEmail(currentEmail) && !isSyntheticCognitoEmail(incomingEmail);
+    }
+
+    private boolean tryUpdateEmail(User existing, String incomingEmail) {
+        if (!shouldReplaceEmail(existing.getEmail(), incomingEmail)) {
+            return false;
+        }
+        return userRepository.findByEmail(incomingEmail)
+            .map(other -> Objects.equals(other.getUserId(), existing.getUserId()))
+            .orElse(true)
+            && setEmailIfChanged(existing, incomingEmail);
+    }
+
+    private boolean setEmailIfChanged(User existing, String incomingEmail) {
+        if (Objects.equals(existing.getEmail(), incomingEmail)) {
+            return false;
+        }
+        existing.setEmail(incomingEmail);
+        return true;
+    }
+
+    private boolean isSyntheticCognitoEmail(String email) {
+        return email != null && email.endsWith("@cognito.local");
     }
 
     private String claimAsString(Map<String, Object> claims, String key) {

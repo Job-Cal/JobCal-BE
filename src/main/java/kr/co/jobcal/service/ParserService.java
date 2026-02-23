@@ -5,6 +5,7 @@ import kr.co.jobcal.service.parser.BaseParser;
 import kr.co.jobcal.service.parser.InthisworkParser;
 import kr.co.jobcal.service.parser.ParsedJob;
 import kr.co.jobcal.service.parser.WantedParser;
+import kr.co.jobcal.service.parser.ZighangParser;
 import kr.co.jobcal.global.utils.HttpFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ import java.util.Locale;
 public class ParserService {
     private static final Logger log = LoggerFactory.getLogger(ParserService.class);
 
-    private static final String UNSUPPORTED_URL_ERROR = "지원하지 않는 주소입니다. 원티드/인디스워크 URL만 지원합니다.";
+    private static final String UNSUPPORTED_URL_ERROR = "지원하지 않는 주소입니다. 원티드/인디스워크/직행 URL만 지원합니다.";
     private final JobDescriptionFormatter jobDescriptionFormatter;
 
     public ParserService(JobDescriptionFormatter jobDescriptionFormatter) {
@@ -79,6 +80,9 @@ public class ParserService {
         if (isInthisworkHost(host)) {
             return new InthisworkParser(html);
         }
+        if (isZighangHost(host)) {
+            return new ZighangParser(html);
+        }
 
         return new WantedParser(html);
     }
@@ -91,7 +95,8 @@ public class ParserService {
 
         return host.equals("wanted.co.kr")
             || host.endsWith(".wanted.co.kr")
-            || isInthisworkHost(host);
+            || isInthisworkHost(host)
+            || isZighangHost(host);
     }
 
     private boolean isInthisworkHost(String host) {
@@ -99,6 +104,13 @@ public class ParserService {
             return false;
         }
         return host.equals("inthiswork.com") || host.endsWith(".inthiswork.com");
+    }
+
+    private boolean isZighangHost(String host) {
+        if (host == null || host.isBlank()) {
+            return false;
+        }
+        return host.equals("zighang.com") || host.endsWith(".zighang.com");
     }
 
     private String extractNormalizedHost(String url) {

@@ -15,10 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(
+    @Table(
     name = "users",
     indexes = {
         @Index(name = "ix_users_email", columnList = "email", unique = true),
+        @Index(name = "ix_users_provider_subject", columnList = "provider_subject", unique = true),
         @Index(name = "ix_users_user_id", columnList = "user_id", unique = true)
     }
 )
@@ -30,6 +31,9 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(name = "provider_subject", unique = true)
+    private String providerSubject;
 
     @Column(name = "hashed_password", nullable = false)
     private String hashedPassword;
@@ -62,6 +66,14 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getProviderSubject() {
+        return providerSubject;
+    }
+
+    public void setProviderSubject(String providerSubject) {
+        this.providerSubject = providerSubject;
     }
 
     public String getUserId() {
