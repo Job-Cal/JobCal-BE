@@ -1,7 +1,9 @@
 package kr.co.jobcal.service.parser;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.jsoup.nodes.Element;
@@ -22,7 +24,10 @@ public class InthisworkParser extends BaseParser {
             String jobTitle = extractJobTitle();
             LocalDate deadline = extractDeadline();
             String descriptionRaw = extractDescription();
-            String description = descriptionRaw;
+            String description = buildSectionDescription(descriptionRaw, companyName);
+            if (description == null || description.isBlank()) {
+                description = descriptionRaw;
+            }
             String location = extractLocation();
             String employmentType = extractEmploymentType();
             String applyUrl = extractApplyUrl();
@@ -360,5 +365,143 @@ public class InthisworkParser extends BaseParser {
         }
 
         return builder.toString();
+    }
+
+    private String buildSectionDescription(String raw, String companyName) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+
+        LinkedHashMap<String, List<String>> sections = new LinkedHashMap<>();
+        List<String> introLines = new ArrayList<>();
+        String currentSection = null;
+
+        String[] lines = raw.split("\n");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isBlank()) {
+                continue;
+            }
+
+            String sectionName = detectSectionHeading(trimmed);
+            if (sectionName != null) {
+                currentSection = sectionName;
+                sections.computeIfAbsent(currentSection, k -> new ArrayList<>());
+                continue;
+            }
+
+            List<String> items = splitItems(trimmed);
+            if (currentSection == null) {
+                introLines.addAll(items);
+            } else {
+                sections.computeIfAbsent(currentSection, k -> new ArrayList<>()).addAll(items);
+            }
+        }
+
+        if (!introLines.isEmpty()) {
+            sections.putIfAbsent("회사소개", new ArrayList<>(introLines));
+        } else if (companyName != null && !companyName.isBlank()) {
+            sections.putIfAbsent("회사소개", List.of(companyName + " 채용 공고입니다."));
+        }
+
+        if (sections.isEmpty()) {
+            return raw;
+        }
+
+        List<String> order = List.of(
+            "회사소개",
+            "이런 일을 해요",
+            "주요업무",
+            "자격요건",
+            "우대사항",
+            "고용조건",
+            "포지션 정보",
+            "합류 여정",
+            "지원 시 유의사항"
+        );
+
+        StringBuilder out = new StringBuilder();
+        for (String key : order) {
+            List<String> values = sections.get(key);
+            if (values == null || values.isEmpty()) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append("\n\n");
+            }
+            out.append("## **").append(key).append("**");
+            for (String value : values) {
+                if (value == null || value.isBlank()) {
+                    continue;
+                }
+                out.append("\n- ").append(value);
+            }
+        }
+
+        for (Map.Entry<String, List<String>> entry : sections.entrySet()) {
+            String key = entry.getKey();
+            if (order.contains(key)) {
+                continue;
+            }
+            List<String> values = entry.getValue();
+            if (values == null || values.isEmpty()) {
+                continue;
+            }
+            if (out.length() > 0) {
+                out.append("\n\n");
+            }
+            out.append("## **").append(key).append("**");
+            for (String value : values) {
+                if (value == null || value.isBlank()) {
+                    continue;
+                }
+                out.append("\n- ").append(value);
+            }
+        }
+
+        String result = out.toString().trim();
+        return result.isBlank() ? raw : result;
+    }
+
+    private String detectSectionHeading(String line) {
+        String normalized = line
+            .replace("!", "")
+            .replace(":", "")
+            .replace("🙋🏻‍♀️", "")
+            .replace("🙆🏻‍♀️", "")
+            .replace("🙆🏻‍♂️", "")
+            .trim();
+
+        if (normalized.contains("이런 일을 해요")) return "이런 일을 해요";
+        if (normalized.contains("주요업무")) return "주요업무";
+        if (normalized.contains("자격요건")) return "자격요건";
+        if (normalized.contains("우대사항") || normalized.contains("이런 경험이 있으면 더")) return "우대사항";
+        if (normalized.contains("고용조건") || normalized.contains("근무조건")) return "고용조건";
+        if (normalized.contains("포지션 정보")) return "포지션 정보";
+        if (normalized.contains("합류 여정") || normalized.contains("전형")) return "합류 여정";
+        if (normalized.contains("지원 시 유의사항")) return "지원 시 유의사항";
+        if (normalized.contains("회사소개") || normalized.contains("포지션 상세")) return "회사소개";
+        return null;
+    }
+
+    private List<String> splitItems(String line) {
+        String normalized = line
+            .replaceAll("\\s+[•·]\\s+", " • ")
+            .replaceAll("^[•·]\\s*", "")
+            .trim();
+
+        if (!normalized.contains(" • ")) {
+            return List.of(normalized);
+        }
+
+        String[] parts = normalized.split("\\s+•\\s+");
+        List<String> items = new ArrayList<>();
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (!trimmed.isBlank()) {
+                items.add(trimmed);
+            }
+        }
+        return items.isEmpty() ? List.of(normalized) : items;
     }
 }
