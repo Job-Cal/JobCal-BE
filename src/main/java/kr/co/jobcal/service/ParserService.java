@@ -18,6 +18,11 @@ public class ParserService {
     private static final Logger log = LoggerFactory.getLogger(ParserService.class);
 
     private static final String UNSUPPORTED_URL_ERROR = "지원하지 않는 주소입니다. 원티드/인디스워크 URL만 지원합니다.";
+    private final JobDescriptionFormatter jobDescriptionFormatter;
+
+    public ParserService(JobDescriptionFormatter jobDescriptionFormatter) {
+        this.jobDescriptionFormatter = jobDescriptionFormatter;
+    }
 
     public ParserResult parseUrl(String url) {
         try {
@@ -39,9 +44,15 @@ public class ParserService {
             request.setDeadline(parsedJob.getDeadline());
             request.setOriginalUrl(url);
             request.setParsedData(parsedJob.getParsedData());
-            String rawDescription = parsedJob.getDescription();
+            String rawDescription = parsedJob.getDescriptionRaw() != null
+                ? parsedJob.getDescriptionRaw()
+                : parsedJob.getDescription();
             request.setDescriptionRaw(rawDescription);
-            request.setDescription(rawDescription);
+            String formattedDescription = parsedJob.getDescription();
+            if (formattedDescription == null || formattedDescription.isBlank()) {
+                formattedDescription = jobDescriptionFormatter.toMarkdown(rawDescription);
+            }
+            request.setDescription(formattedDescription);
             request.setLocation(parsedJob.getLocation());
 
             String host = extractNormalizedHost(url);

@@ -8,6 +8,7 @@ public class ParsedJob {
     private String jobTitle;
     private LocalDate deadline;
     private String description;
+    private String descriptionRaw;
     private String location;
     private Map<String, Object> parsedData;
 
@@ -41,6 +42,14 @@ public class ParsedJob {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getDescriptionRaw() {
+        return descriptionRaw;
+    }
+
+    public void setDescriptionRaw(String descriptionRaw) {
+        this.descriptionRaw = descriptionRaw;
     }
 
     public String getLocation() {

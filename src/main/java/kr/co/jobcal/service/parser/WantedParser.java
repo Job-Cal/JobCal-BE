@@ -27,28 +27,38 @@ public class WantedParser extends BaseParser {
             String companyName = extractCompanyName(initialData);
             String jobTitle = extractJobTitle(initialData);
             LocalDate deadline = extractDeadline(initialData);
-            String description = extractDescription(initialData);
+            String descriptionRaw = extractRawDescription(initialData);
             String location = extractLocation(initialData);
+            String intro = textAtRaw(initialData, "intro");
+            String benefits = textAtRaw(initialData, "benefits");
             String responsibilities = extractResponsibilities(initialData);
             String requirements = extractRequirements(initialData);
             String preferences = extractPreferences(initialData);
             String employmentType = extractEmploymentType(initialData);
             String hireRounds = extractHireRounds(initialData);
             String confirmTime = textAt(initialData, "confirm_time");
+            String description = buildWantedSectionDescription(
+                companyName,
+                intro,
+                responsibilities,
+                requirements,
+                preferences,
+                benefits,
+                hireRounds
+            );
 
-            if (description == null || description.length() < 50) {
-                Map<String, String> fallbackSections = new HashMap<>();
-                fallbackSections.put("주요업무", responsibilities);
-                fallbackSections.put("자격요건", requirements);
-                fallbackSections.put("우대사항", preferences);
-                fallbackSections.put("채용 전형", hireRounds);
-                description = joinLabeledRawSections(fallbackSections);
+            if (description == null || description.isBlank()) {
+                description = extractDescription(initialData);
+            }
+            if ((descriptionRaw == null || descriptionRaw.isBlank()) && description != null) {
+                descriptionRaw = description;
             }
 
             result.setCompanyName(companyName != null ? companyName : "Unknown Company");
             result.setJobTitle(jobTitle != null ? jobTitle : "Unknown Position");
             result.setDeadline(deadline);
             result.setDescription(description);
+            result.setDescriptionRaw(descriptionRaw);
             result.setLocation(trimToMax(location, 1000));
             Map<String, Object> parsedData = new HashMap<>();
             parsedData.put("source", "wanted");
@@ -60,6 +70,12 @@ public class WantedParser extends BaseParser {
             }
             if (preferences != null) {
                 parsedData.put("preferences", preferences);
+            }
+            if (intro != null) {
+                parsedData.put("intro", intro);
+            }
+            if (benefits != null) {
+                parsedData.put("benefits", benefits);
             }
             if (employmentType != null) {
                 parsedData.put("employmentType", employmentType);
@@ -169,6 +185,33 @@ public class WantedParser extends BaseParser {
         return null;
     }
 
+    private String extractRawDescription(JsonNode initialData) {
+        String fromInitialData = mergeRawSectionsFromInitialData(initialData);
+        if (fromInitialData != null && !fromInitialData.isBlank()) {
+            return trimToMax(sanitizeWantedDescription(fromInitialData), DESCRIPTION_MAX_LENGTH);
+        }
+
+        List<String> selectors = List.of(
+            "[data-testid*=job-description]",
+            "[class*=JobDescription]",
+            "[class*=job-description]",
+            "section[class*=description]",
+            ".job-description"
+        );
+
+        for (String selector : selectors) {
+            Element element = document.selectFirst(selector);
+            if (element == null) {
+                continue;
+            }
+            String text = sanitizeWantedDescription(element.wholeText());
+            if (text.length() > 50) {
+                return trimToMax(text, DESCRIPTION_MAX_LENGTH);
+            }
+        }
+        return null;
+    }
+
     private String extractDescription(JsonNode initialData) {
         String fromInitialData = mergeDescriptionFromInitialData(initialData);
         if (fromInitialData != null) {
@@ -176,15 +219,21 @@ public class WantedParser extends BaseParser {
         }
 
         List<String> selectors = List.of(
+            "[data-testid*=job-description]",
+            "[class*=JobDescription]",
+            "[class*=job-description]",
+            "section[class*=description]",
             "[class*=description]",
             "[class*=content]",
-            ".job-description"
+            ".job-description",
+            "article",
+            "main"
         );
 
         for (String selector : selectors) {
             Element element = document.selectFirst(selector);
             if (element != null) {
-                String text = cleanText(element.text());
+                String text = normalizeRawText(element.wholeText());
                 if (text.length() > 50) {
                     return trimToMax(text, DESCRIPTION_MAX_LENGTH);
                 }
@@ -348,12 +397,59 @@ public class WantedParser extends BaseParser {
 
     private String mergeDescriptionFromInitialData(JsonNode initialData) {
         Map<String, String> sections = new HashMap<>();
-        sections.put("소개", textAt(initialData, "intro"));
-        sections.put("주요업무", textAt(initialData, "main_tasks"));
-        sections.put("자격요건", textAt(initialData, "requirements"));
-        sections.put("우대사항", textAt(initialData, "preferred_points"));
-        sections.put("혜택 및 복지", textAt(initialData, "benefits"));
-        sections.put("채용 전형", textAt(initialData, "hire_rounds"));
+        sections.put("소개", textAtRaw(initialData, "intro"));
+        sections.put("주요업무", textAtRaw(initialData, "main_tasks"));
+        sections.put("자격요건", textAtRaw(initialData, "requirements"));
+        sections.put("우대사항", textAtRaw(initialData, "preferred_points"));
+        sections.put("혜택 및 복지", textAtRaw(initialData, "benefits"));
+        sections.put("채용 전형", textAtRaw(initialData, "hire_rounds"));
+        return joinLabeledRawSections(sections);
+    }
+
+    private String mergeRawSectionsFromInitialData(JsonNode initialData) {
+        List<String> parts = List.of(
+            textAtRaw(initialData, "intro"),
+            textAtRaw(initialData, "main_tasks"),
+            textAtRaw(initialData, "requirements"),
+            textAtRaw(initialData, "preferred_points"),
+            textAtRaw(initialData, "benefits"),
+            textAtRaw(initialData, "hire_rounds")
+        );
+
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append("\n\n");
+            }
+            builder.append(part.trim());
+        }
+        String merged = builder.toString().trim();
+        return merged.isBlank() ? null : merged;
+    }
+
+    private String buildWantedSectionDescription(
+        String companyName,
+        String intro,
+        String responsibilities,
+        String requirements,
+        String preferences,
+        String benefits,
+        String hireRounds
+    ) {
+        String companyIntro = (intro != null && !intro.isBlank())
+            ? intro
+            : ((companyName != null && !companyName.isBlank()) ? companyName + " 채용 공고입니다." : null);
+
+        Map<String, String> sections = new HashMap<>();
+        sections.put("회사소개", companyIntro);
+        sections.put("주요업무", responsibilities);
+        sections.put("자격요건", requirements);
+        sections.put("우대사항", preferences);
+        sections.put("혜택 및 복지", benefits);
+        sections.put("채용 전형", hireRounds);
         return joinLabeledRawSections(sections);
     }
 
@@ -362,7 +458,7 @@ public class WantedParser extends BaseParser {
             return null;
         }
 
-        List<String> order = List.of("소개", "주요업무", "자격요건", "우대사항", "혜택 및 복지", "채용 전형");
+        List<String> order = List.of("회사소개", "소개", "주요업무", "자격요건", "우대사항", "혜택 및 복지", "채용 전형");
         StringBuilder builder = new StringBuilder();
         for (String label : order) {
             String section = sectionsByLabel.get(label);
@@ -373,14 +469,27 @@ public class WantedParser extends BaseParser {
                 builder.append("\n\n");
             }
             String cleaned = section.trim();
+            cleaned = normalizeSectionBodyForMarkdown(cleaned);
             if (cleaned.contains(label)) {
                 builder.append(cleaned);
             } else {
-                builder.append("## ").append(label).append("\n").append(cleaned);
+                builder.append("## **").append(label).append("**\n").append(cleaned);
             }
         }
         String merged = builder.toString().trim();
         return merged.isBlank() ? null : trimToMax(merged, DESCRIPTION_MAX_LENGTH);
+    }
+
+    private String normalizeSectionBodyForMarkdown(String text) {
+        if (text == null || text.isBlank()) {
+            return text;
+        }
+
+        String normalized = text
+            .replaceAll("\\s+[•·]\\s+", "\n• ")
+            .replaceAll("(?m)^\\s*[•·]\\s*", "• ");
+
+        return normalized.trim();
     }
 
     private JsonNode extractWantedInitialDataNode() {
@@ -432,6 +541,93 @@ public class WantedParser extends BaseParser {
         }
         String value = cleanText(current.asText());
         return value.isBlank() ? null : value;
+    }
+
+    private String textAtRaw(JsonNode node, String... path) {
+        if (node == null) {
+            return null;
+        }
+        JsonNode current = node;
+        for (String key : path) {
+            if (current == null || current.isMissingNode() || current.isNull()) {
+                return null;
+            }
+            current = current.path(key);
+        }
+        if (current == null || current.isMissingNode() || current.isNull()) {
+            return null;
+        }
+        String value = normalizeRawText(current.asText());
+        return value.isBlank() ? null : value;
+    }
+
+    private String normalizeRawText(String text) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = text
+            .replace("\r\n", "\n")
+            .replace('\r', '\n')
+            .replace('\u00a0', ' ');
+
+        String[] lines = normalized.split("\n", -1);
+        StringBuilder builder = new StringBuilder();
+        int blankRun = 0;
+
+        for (String line : lines) {
+            String cleanedLine = line
+                .replace('\t', ' ')
+                .replace('\f', ' ')
+                .stripTrailing();
+
+            if (cleanedLine.isBlank()) {
+                blankRun++;
+                if (blankRun <= 2 && builder.length() > 0 && builder.charAt(builder.length() - 1) != '\n') {
+                    builder.append('\n');
+                }
+                continue;
+            }
+
+            blankRun = 0;
+            if (builder.length() > 0 && builder.charAt(builder.length() - 1) != '\n') {
+                builder.append('\n');
+            }
+            builder.append(cleanedLine);
+        }
+
+        return builder.toString().trim();
+    }
+
+    private String sanitizeWantedDescription(String rawText) {
+        String normalized = normalizeRawText(rawText);
+        if (normalized.isBlank()) {
+            return normalized;
+        }
+        return dedupeConsecutiveLines(normalized).trim();
+    }
+
+    private String dedupeConsecutiveLines(String text) {
+        String[] lines = text.split("\n");
+        StringBuilder builder = new StringBuilder();
+        String prevNormalized = null;
+
+        for (String line : lines) {
+            String normalized = line.strip().replaceAll("\\s+", " ");
+            if (prevNormalized != null && !normalized.isBlank() && normalized.equals(prevNormalized)) {
+                continue;
+            }
+
+            if (builder.length() > 0) {
+                builder.append('\n');
+            }
+            builder.append(line.stripTrailing());
+
+            if (!normalized.isBlank()) {
+                prevNormalized = normalized;
+            }
+        }
+
+        return builder.toString();
     }
 
     private LocalDate parseIsoDate(String value) {
